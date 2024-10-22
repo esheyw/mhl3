@@ -19,7 +19,11 @@ const filesToCopy = [
   "CHANGELOG.md",
   "README.md",
   "CONTRIBUTING.md",
-  "styles/main.css"  
+  "styles/!(*.scss|*.less)",
+  // "styles/**/!(*.scss|*.less)",
+  "lang/*.json",
+  "templates/*.(hbs|html)",
+  "templates/**/*.(hbs|html)",
 ]; // Feel free to change me.
 
 // @ts-expect-error the types are set to invalid values to ensure the user sets them.
@@ -50,7 +54,10 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
     plugins.push(
       minifyPlugin(),
       ...viteStaticCopy({
-        targets: filesToCopy.map((file) => ({ src: file, dest: path"." })),
+        targets: filesToCopy.map((file) => ({
+          src: file,
+          dest: path.dirname(file),
+        })),
       }),
     );
   } else {
@@ -342,15 +349,20 @@ function foundryHMRPlugin(): Vite.Plugin {
 
       if (baseName === "en.json") {
         const basePath = context.file.slice(context.file.indexOf("lang/"));
-
         console.log(`Updating lang file at ${basePath}`);
 
         await fs.copyFile(context.file, `${outDir}/${basePath}`);
 
+        const sendPath =
+          getFoundryPackagePath(packageType, packageID) + basePath;
+        console.log("send path: ", sendPath);
+
         context.server.ws.send({
           type: "custom",
           event: "lang-update",
-          data: { path: `systems/pf2e/${basePath}` },
+          data: {
+            path: sendPath,
+          },
         });
 
         return;
@@ -361,11 +373,17 @@ function foundryHMRPlugin(): Vite.Plugin {
         console.log(`Updating template file at ${basePath}`);
 
         await fs.copyFile(context.file, `${outDir}/${basePath}`);
-
+        const sendPath = path.resolve(
+          getFoundryPackagePath(packageType, packageID),
+          basePath,
+        );
+        console.log("send path: ", sendPath);
         context.server.ws.send({
           type: "custom",
           event: "template-update",
-          data: { path: `systems/pf2e/${basePath}` },
+          data: {
+            path: sendPath,
+          },
         });
 
         return;
