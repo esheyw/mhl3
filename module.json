@@ -1,0 +1,44 @@
+{
+  "id": "mhl3",
+  "title": "Macro & Helper Library 3 - TS Edition",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.332"
+  },
+  "authors": [
+    {
+      "name": "Emmanuel Wineberg",
+      "email": "esheyw@gmail.com",
+      "url": "https://github.com/esheyw",
+      "discord": "esheyw"
+    }
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "license": "LICENSE",
+  "flags": {
+    "hotReload": {
+      "extensions": [
+        "css",
+        "hbs",
+        "json"
+      ]
+    }
+  },
+  "esmodules": [
+    "mhl3.js"
+  ],
+  "styles": ["styles/main.css"],
+  "version": "1.0",
+  "manifest": "updatedByRelease",
+  "url": "updatedByRelease",
+  "download": "updatedByRelease",
+  "readme": "https://github.com/esheyw/mhl2/blob/main/README.md",
+  "bugs": "https://github.com/esheyw/mhl2/issues",
+  "changelog": "https://github.com/esheyw/mhl2/blob/main/CHANGELOG.md"
+}

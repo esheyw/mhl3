@@ -1,0 +1,34 @@
+{
+  "MHL": {
+    "Models": {
+      "MHLSettingsManagerDefaults": {
+        "FIELDS": {
+          "accordionIndicatorIcon": {
+            "hint": "The css class(es) used to get the icon displayed next to a collapseable group header. Usually just the glyph-identifying class is sufficient, defaults will be filled in automatically.",
+            "label": "Accordion Indicator Icon"
+          },
+          "disabledClass": {
+            "hint": "The CSS class applied to reset-to-default buttons when their associated setting(s) is/are default.",
+            "label": "Disabled Icon CSS Class"
+          },
+          "groupResetIcon": {
+            "hint": "Same as above, but for the Reset Group Settings button.",
+            "label": "Group Reset Icon"
+          },
+          "moduleResetIcon": {
+            "hint": "Same as above, for the Reset Module Settings button's icon.",
+            "label": "Module Reset Icon"
+          },
+          "settingResetIcon": {
+            "hint": "Same as above, but for the per-setting reset buttons.",
+            "label": "Setting Reset Icon"
+          },
+          "accordionSpeed": {
+            "hint": "The global speed at which animated collapsible groups transition",
+            "label": "Animated Collapsible Group Speed"
+          }
+        }
+      }
+    }
+  }
+}
