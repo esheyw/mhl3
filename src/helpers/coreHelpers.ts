@@ -2,6 +2,73 @@ import type { AnyMutableObject } from "fvtt-types/src/types/utils.d.mts";
 import type { Fromable } from "../mhl.js";
 import { fu } from "../constants.ts";
 
+// export type DeeperCloneOptions = {
+
+// }
+// export function deeperClone(
+//   original: unknown,
+//   options: {
+//     strict = false,
+//     returnOriginal = true,
+//     cloneSets = true,
+//     cloneSetValues = false,
+//     cloneMaps = false,
+//     cloneMapKeys = false,
+//     cloneMapValues = false,
+//   } = {}
+// ) {
+//   const options = { strict, returnOriginal, cloneSets, cloneSetValues, cloneMaps, cloneMapKeys, cloneMapValues };
+//   return _deeperClone(original, options, 0);
+// }
+
+// function _deeperClone(original, options, depth) {  
+//   if (depth > 100) {
+//     throw new Error("Maximum depth exceeded. Be sure your object does not contain cyclical data structures.");
+//   }
+//   depth++;
+
+//   // Simple types
+//   if (typeof original !== "object" || original === null) return original;
+
+//   // Arrays and their elements always get cloned as per Foundry's handling
+//   if (original instanceof Array) return original.map((o) => _deeperClone(o, options, depth));
+
+//   if (original instanceof Set) {
+//     if (options.cloneSets) return original.map((o) => (options.cloneSetValues ? _deeperClone(o, options, depth) : o));
+//     else return original;
+//   }
+
+//   // Maps & Collections
+//   if (original instanceof Map) {
+//     if (options.cloneMaps) {
+//       const out = new original.constructor();
+//       for (const [k, v] of original.entries())
+//         out.set(
+//           options.cloneMapKeys ? _deeperClone(k, options, depth) : k,
+//           options.cloneMapValues ? _deeperClone(v, options, depth) : v
+//         );
+//       return out;
+//     } else return original;
+//   }
+  
+//   // Dates
+//   if (original instanceof Date) return new Date(original);
+
+//   // Unsupported advanced objects
+//   if (original.constructor && original.constructor !== Object) {
+//     //todo: localize
+//     if (strict) throw new Error("deeperClone cannot clone advanced objects");
+//     return returnOriginal ? original : undefined;
+//   }
+
+//   // Other objects
+//   const clone = {};
+//   for (const k of Object.keys(original)) {
+//     clone[k] = _deeperClone(original[k], options, depth);
+//   }
+//   return clone;
+// }
+
 /**
  * Expands any string keys containing `.` in the provided object, mutating it.
  * @param object - The object to be expanded

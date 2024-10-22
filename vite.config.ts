@@ -66,6 +66,9 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
 
   const foundryPackagePath = getFoundryPackagePath(packageType, packageID);
 
+  const proxyKey = `^(?!${escapeRegExp(foundryPackagePath)})`;
+  console.log(proxyKey)
+
   return {
     base: command === "build" ? "/" : `/${foundryPackagePath}`,
     publicDir: "static",
@@ -88,7 +91,7 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
       port: 30037,
       open: "/game",
       proxy: {
-        [`^(?!${escapeRegExp(foundryPackagePath)})`]: `http://${foundryHost}`,
+        [proxyKey]: `http://${foundryHost}`,
         "/socket.io": {
           target: `ws://${foundryHost}`,
           ws: true,
