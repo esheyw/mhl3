@@ -373,11 +373,11 @@ function foundryHMRPlugin(): Vite.Plugin {
         console.log(`Updating template file at ${basePath}`);
 
         await fs.copyFile(context.file, `${outDir}/${basePath}`);
-        const sendPath = path.resolve(
-          getFoundryPackagePath(packageType, packageID),
-          basePath,
-        );
+
+        const sendPath =
+          getFoundryPackagePath(packageType, packageID) + basePath;
         console.log("send path: ", sendPath);
+        
         context.server.ws.send({
           type: "custom",
           event: "template-update",
