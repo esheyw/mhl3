@@ -21,7 +21,7 @@ export class MHLCore {
   get R() {
     return R;
   }
-  test: number = 5;
+  test: number = 9;
   constructor() {
     if (MHLCore.instance instanceof MHLCore) return MHLCore.instance;
     MHLCore.#instance = this;

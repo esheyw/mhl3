@@ -19,7 +19,7 @@ const upperOrWordBoundariedLowerRE = new RegExp(
 /**
  * PF2e's sluggify function, stolen completely.
  * @param  text - The text to sluggify
- * @param [options.camel=null] The sluggification style to use
+ * @param options.camel=null -  The sluggification style to use
  */
 export function sluggify(
   text: string,
@@ -56,7 +56,7 @@ export function sluggify(
         )
         .replace(/\s+/g, "");
     default:
-      //todo: better error handling
+      //todo: reconsider error handling
       throw Error("I don't think that's a real camel.");
   }
 }

@@ -50,18 +50,21 @@ type MHLSettingsHintEnricherData =
 
 type MHLSettingsManagerBaseOptions = {
   prefix: string;
+  choiceInfix: string;
   associateLabels: boolean;
+  enrichHints: boolean;
+  enrichers: MHLSettingsHintEnricherData
+  settingPrefix: string
+  visibility: boolean
 };
 
 export type MHLSettingsManagerAssignmentOptions =
   InexactPartial<MHLSettingsManagerBaseOptions> & {
     groups?: boolean | string[] | InexactPartial<MHLSettingsGroupOptions>;
-    enrichHints?: boolean | MHLSettingsHintEnricherData;
   };
 
 export type MHLSettingsManagerOptions = MHLSettingsManagerBaseOptions & {
   groups: MHLSettingsGroupOptions;
-  enrichHints: boolean;
 };
 
 /**

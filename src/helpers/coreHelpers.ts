@@ -1,73 +1,171 @@
-import type { AnyMutableObject } from "fvtt-types/src/types/utils.d.mts";
-import type { Fromable } from "../mhl.js";
+import type {
+  AnyArray,
+  AnyMutableObject,
+  AnyObject,
+} from "fvtt-types/src/types/utils.d.mts";
+import type { CouldBeTrue, Fromable } from "../mhl.d.ts";
 import { fu } from "../constants.ts";
 
-// export type DeeperCloneOptions = {
+export type DeeperCloneOptions = {
+  /** Throw an Error if deeperClone is unable to clone something instead of returning the original */
+  strict?: boolean;
+  /* Whether to pass along the reference to an uncloneable complex object, or replace with undefined */
+  returnOriginal?: boolean;
+  /* Whether to clone Sets or pass along the original reference */
+  cloneSets?: boolean;
+  /* Whether to clone Set values, or pass along the original reference. Does nothing if cloneSets is false */
+  cloneSetValues?: boolean;
+  /* Whether to clone Maps/Collections or pass along the original reference */
+  cloneMaps?: boolean;
+  /* Whether to clone Map/Collection keys, or pass along the original reference. Does nothing if cloneMaps is false */
+  cloneMapKeys?: boolean;
+  /* Whether to clone Map/Collection values, or pass along the original reference. Does nothing if cloneMaps is false */
+  cloneMapValues?: boolean;
+};
+type CloneableOf<Options extends DeeperCloneOptions> =
+  CouldBeTrue<Options["strict"]> extends true
+    ? {
+        readonly [K: string]: CloneableTypes<Options>;
+      }
+    : AnyObject;
 
-// }
-// export function deeperClone(
-//   original: unknown,
-//   options: {
-//     strict = false,
-//     returnOriginal = true,
-//     cloneSets = true,
-//     cloneSetValues = false,
-//     cloneMaps = false,
-//     cloneMapKeys = false,
-//     cloneMapValues = false,
-//   } = {}
-// ) {
-//   const options = { strict, returnOriginal, cloneSets, cloneSetValues, cloneMaps, cloneMapKeys, cloneMapValues };
-//   return _deeperClone(original, options, 0);
-// }
+type CloneableTypes<Options extends DeeperCloneOptions> =
+  | (true extends Options["cloneSets"] ? Set<unknown> : never)
+  | (true extends Options["cloneMaps"] ? Map<unknown, unknown> : never)
+  | { readonly [K: string]: CloneableTypes<Options> } // May whine about recursiveness.
+  | CloneableTypes<Options>[]
+  | (number | string | boolean | null | undefined); // May be missing some.
 
-// function _deeperClone(original, options, depth) {  
-//   if (depth > 100) {
-//     throw new Error("Maximum depth exceeded. Be sure your object does not contain cyclical data structures.");
-//   }
-//   depth++;
+type DeeperClone<
+  O extends CloneableOf<Options>,
+  Options extends DeeperCloneOptions,
+> =
+  CouldBeTrue<Options["strict"]> extends true
+    ? O
+    : _DeeperClone<O, CloneableTypes<Options>, Options>;
 
-//   // Simple types
-//   if (typeof original !== "object" || original === null) return original;
+type _DeeperClone<
+  Original,
+  CloneableTypes,
+  Options extends DeeperCloneOptions,
+> = Original extends CloneableTypes
+  ? Original extends AnyObject
+    ? {
+        [K in keyof Original]: _DeeperClone<
+          Original[K],
+          CloneableTypes,
+          Options
+        >;
+      }
+    : Original extends AnyArray
+      ? {
+          [K in keyof Original & number]: _DeeperClone<
+            Original[K],
+            CloneableTypes,
+            Options
+          >;
+        }
+      : Original extends Set<infer Item>
+        ? Set<
+            // TODO: account for defaults here.
+            CouldBeTrue<Options["cloneMapKeys"]> extends true
+              ? _DeeperClone<Item, CloneableTypes, Options>
+              : Item
+          >
+        : Original extends Map<infer K, infer V>
+          ? Map<
+              // TODO: account for defaults here.
+              CouldBeTrue<Options["cloneMapKeys"]> extends true
+                ? _DeeperClone<K, CloneableTypes, Options>
+                : K,
+              CouldBeTrue<Options["cloneMapValues"]> extends true
+                ? _DeeperClone<V, CloneableTypes, Options>
+                : never
+            >
+          : Original
+  : undefined; // in strict mode this branch will never be triggered
 
-//   // Arrays and their elements always get cloned as per Foundry's handling
-//   if (original instanceof Array) return original.map((o) => _deeperClone(o, options, depth));
+export function deeperClone<T = unknown>(
+  original: T,
+  {
+    strict = false,
+    returnOriginal = true,
+    cloneSets = true,
+    cloneSetValues = false,
+    cloneMaps = false,
+    cloneMapKeys = false,
+    cloneMapValues = false,
+  }: DeeperCloneOptions = {},
+): T {
+  const options: DeeperCloneOptions = {
+    strict,
+    returnOriginal,
+    cloneSets,
+    cloneSetValues,
+    cloneMaps,
+    cloneMapKeys,
+    cloneMapValues,
+  };
+  return _deeperClone<T>(original, options, 0);
+}
 
-//   if (original instanceof Set) {
-//     if (options.cloneSets) return original.map((o) => (options.cloneSetValues ? _deeperClone(o, options, depth) : o));
-//     else return original;
-//   }
+function _deeperClone<T = unknown>(
+  original: T,
+  options: DeeperCloneOptions,
+  depth: number,
+): T {
+  if (depth > 100) {
+    throw new Error(
+      "Maximum depth exceeded. Be sure your object does not contain cyclical data structures.",
+    );
+  }
+  depth++;
 
-//   // Maps & Collections
-//   if (original instanceof Map) {
-//     if (options.cloneMaps) {
-//       const out = new original.constructor();
-//       for (const [k, v] of original.entries())
-//         out.set(
-//           options.cloneMapKeys ? _deeperClone(k, options, depth) : k,
-//           options.cloneMapValues ? _deeperClone(v, options, depth) : v
-//         );
-//       return out;
-//     } else return original;
-//   }
-  
-//   // Dates
-//   if (original instanceof Date) return new Date(original);
+  // Simple types
+  if (typeof original !== "object" || original === null) return original;
 
-//   // Unsupported advanced objects
-//   if (original.constructor && original.constructor !== Object) {
-//     //todo: localize
-//     if (strict) throw new Error("deeperClone cannot clone advanced objects");
-//     return returnOriginal ? original : undefined;
-//   }
+  // Arrays and their elements always get cloned as per Foundry's handling
+  if (original instanceof Array)
+    return original.map((o) => _deeperClone<typeof o>(o, options, depth));
 
-//   // Other objects
-//   const clone = {};
-//   for (const k of Object.keys(original)) {
-//     clone[k] = _deeperClone(original[k], options, depth);
-//   }
-//   return clone;
-// }
+  if (original instanceof Set) {
+    if (options.cloneSets)
+      return original.map((o) =>
+        options.cloneSetValues ? _deeperClone(o, options, depth) : o,
+      );
+    else return original;
+  }
+
+  // Maps & Collections
+  if (original instanceof Map) {
+    if (options.cloneMaps) {
+      const out = new original.constructor();
+      for (const [k, v] of original.entries())
+        out.set(
+          options.cloneMapKeys ? _deeperClone(k, options, depth) : k,
+          options.cloneMapValues ? _deeperClone(v, options, depth) : v,
+        );
+      return out;
+    } else return original;
+  }
+
+  // Dates
+  if (original instanceof Date) return new Date(original);
+
+  // Unsupported advanced objects
+  if (original.constructor && original.constructor !== Object) {
+    //todo: localize
+    if (strict) throw new Error("deeperClone cannot clone advanced objects");
+    return returnOriginal ? original : undefined;
+  }
+
+  // Other objects
+  const clone: AnyMutableObject = {};
+  for (const k of Object.keys(original)) {
+    clone[k] = _deeperClone(original[k], options, depth);
+  }
+  return clone;
+}
 
 /**
  * Expands any string keys containing `.` in the provided object, mutating it.

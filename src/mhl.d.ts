@@ -12,10 +12,14 @@ import type {
  * General types
  */
 
+type CouldBeTrue<T> = T extends true ? true : never;
+
 type SimpleTestFunction<T = unknown> = (value: T) => boolean;
 type SortCallback = (a: unknown, b: unknown) => number;
 type StringReplaceCallback = (match: string) => string;
+
 type ConsoleType = "error" | "warn" | "log" | "info" | "debug" | "trace";
+
 type Fromable<T> = Iterable<T> | ArrayLike<T>;
 
 /**

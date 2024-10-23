@@ -66,8 +66,8 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
 
   const foundryPackagePath = getFoundryPackagePath(packageType, packageID);
 
-  const proxyKey = `^(?!${escapeRegExp(foundryPackagePath)})`;
-  console.log(proxyKey)
+  const proxyKey = `^(?!/${escapeRegExp(foundryPackagePath)})`;
+  console.log(proxyKey);
 
   return {
     base: command === "build" ? "/" : `/${foundryPackagePath}`,
@@ -75,7 +75,7 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
     build: {
       outDir,
       minify: true,
-      sourcemap: buildMode === "development",
+      sourcemap: true, // buildMode === "development",
       lib: {
         name: packageID,
         entry: "src/init.ts",
@@ -380,7 +380,7 @@ function foundryHMRPlugin(): Vite.Plugin {
         const sendPath =
           getFoundryPackagePath(packageType, packageID) + basePath;
         console.log("send path: ", sendPath);
-        
+
         context.server.ws.send({
           type: "custom",
           event: "template-update",
