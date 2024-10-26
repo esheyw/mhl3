@@ -59,34 +59,38 @@ type _DeeperClone<
       }
     : Original extends AnyArray
       ? {
-          [K in keyof Original & number]: _DeeperClone<
+          [K in keyof Original & (number | `${number}`)]: _DeeperClone<
             Original[K],
             CloneableTypes,
             Options
           >;
         }
       : Original extends Set<infer Item>
-        ? Set<
-            // TODO: account for defaults here.
-            CouldBeTrue<Options["cloneMapKeys"]> extends true
-              ? _DeeperClone<Item, CloneableTypes, Options>
-              : Item
-          >
-        : Original extends Map<infer K, infer V>
-          ? Map<
-              // TODO: account for defaults here.
-              CouldBeTrue<Options["cloneMapKeys"]> extends true
-                ? _DeeperClone<K, CloneableTypes, Options>
-                : K,
-              CouldBeTrue<Options["cloneMapValues"]> extends true
-                ? _DeeperClone<V, CloneableTypes, Options>
-                : never
+        ? CouldBeTrue<Options["cloneSets"]> extends true
+          ? Set<
+              CouldBeTrue<Options["cloneSetValues"]> extends true
+                ? _DeeperClone<Item, CloneableTypes, Options>
+                : Item
             >
           : Original
+        : Original extends Map<infer K, infer V>
+          ? CouldBeTrue<Options["cloneMaps"]> extends true
+            ? Map<
+                CouldBeTrue<Options["cloneMapKeys"]> extends true
+                  ? _DeeperClone<K, CloneableTypes, Options>
+                  : K,
+                CouldBeTrue<Options["cloneMapValues"]> extends true
+                  ? _DeeperClone<V, CloneableTypes, Options>
+                  : never
+              >
+            : Original
+          : CouldBeTrue<Options["returnOriginal"]> extends true | undefined
+            ? Original
+            : undefined
   : undefined; // in strict mode this branch will never be triggered
 
-export function deeperClone<T = unknown>(
-  original: T,
+export function deeperClone<Original extends CloneableOf<Options>, Options extends DeeperCloneOptions>(
+  original: Original,
   {
     strict = false,
     returnOriginal = true,
@@ -96,7 +100,7 @@ export function deeperClone<T = unknown>(
     cloneMapKeys = false,
     cloneMapValues = false,
   }: DeeperCloneOptions = {},
-): T {
+): DeeperClone<Original, Options> {
   const options: DeeperCloneOptions = {
     strict,
     returnOriginal,
@@ -106,14 +110,14 @@ export function deeperClone<T = unknown>(
     cloneMapKeys,
     cloneMapValues,
   };
-  return _deeperClone<T>(original, options, 0);
+  return _deeperClone(original, options, 0);
 }
 
-function _deeperClone<T = unknown>(
-  original: T,
+function _deeperClone<Original extends CloneableOf<Options>, Options extends DeeperCloneOptions>(
+  original: Original,
   options: DeeperCloneOptions,
   depth: number,
-): T {
+): DeeperClone<Original, Options> {
   if (depth > 100) {
     throw new Error(
       "Maximum depth exceeded. Be sure your object does not contain cyclical data structures.",
@@ -125,8 +129,8 @@ function _deeperClone<T = unknown>(
   if (typeof original !== "object" || original === null) return original;
 
   // Arrays and their elements always get cloned as per Foundry's handling
-  if (original instanceof Array)
-    return original.map((o) => _deeperClone<typeof o>(o, options, depth));
+  if (Array.isArray(original))
+    return original.map((o) => _deeperClone(o, options, depth));
 
   if (original instanceof Set) {
     if (options.cloneSets)
