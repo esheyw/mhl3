@@ -1,10 +1,13 @@
 import type {
   AnyArray,
+  AnyFunction,
   AnyMutableObject,
   AnyObject,
 } from "fvtt-types/src/types/utils.d.mts";
-import type { CouldBeTrue, Fromable } from "../mhl.d.ts";
-import { fu } from "../constants.ts";
+import type { CouldBeTrue, Fromable, WithDefaults } from "../mhl.d.ts";
+import * as R from "remeda";
+
+const { expandObject } = foundry.utils;
 
 export type DeeperCloneOptions = {
   /** Throw an Error if deeperClone is unable to clone something instead of returning the original */
@@ -23,13 +26,6 @@ export type DeeperCloneOptions = {
   cloneMapValues?: boolean;
 };
 
-// type CloneableObjectFor<Options extends DeeperCloneOptions> =
-//   CouldBeTrue<Options["strict"]> extends true
-//     ? {
-//         readonly [K: string]: CloneableTypesFor<Options>;
-//       }
-//     : AnyObject | null | undefined;
-
 type CloneableTypesFor<Options extends DeeperCloneOptions> =
   CouldBeTrue<Options["strict"]> extends true
     ? _CloneableTypesFor<Options>
@@ -40,7 +36,7 @@ type _CloneableTypesFor<Options extends DeeperCloneOptions> =
   | (true extends Options["cloneMaps"] ? Map<unknown, unknown> : never)
   | { readonly [K: string]: _CloneableTypesFor<Options> }
   | _CloneableTypesFor<Options>[]
-  | (number | string | boolean | null | undefined);
+  | (number | string | boolean | AnyFunction | null | undefined);
 
 type DeeperClone<
   Original extends CloneableTypesFor<Options>,
@@ -186,7 +182,7 @@ function _deeperClone<
   const clone: AnyMutableObject = {};
   for (const k of Object.keys(original)) {
     clone[k] = _deeperClone(
-      original[k as never],
+      original[k as never], // effectively casts to unknown, check here if breakage experienced
       options,
       depth,
     );
@@ -194,13 +190,30 @@ function _deeperClone<
   return clone as DeeperClone<Original, Options>;
 }
 
+export function mhlClone<
+  Original extends CloneableTypesFor<
+    WithDefaults<Options, { cloneSets: true }>
+  >,
+  Options extends DeeperCloneOptions,
+>(
+  original: Original,
+  options: DeeperCloneOptions = {},
+): DeeperClone<Original, WithDefaults<Options, { cloneSets: true }>> {
+  options.cloneSets ??= true;
+  return _deeperClone(original, options, 0);
+}
+
 /**
  * Expands any string keys containing `.` in the provided object, mutating it.
  * @param object - The object to be expanded
  */
 export function expandInPlace(object: AnyMutableObject): AnyMutableObject {
+  //todo: logging error
+  //todo: Work out ExpandedMutable type
+  if (!R.isPlainObject(object))
+    throw new Error("expandInPlace operates only on plain objects");
   if (!Object.keys(object).some((k) => k.includes("."))) return object;
-  const expanded = fu.expandObject(object);
+  const expanded = expandObject(object);
   // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
   Object.keys(object).forEach((k) => delete object[k]);
   Object.assign(object, expanded);
@@ -248,4 +261,104 @@ export function isFromable(object: unknown): object is Fromable<unknown> {
 export function isSingleType(fromable: Fromable<unknown>): boolean {
   return new Set(Array.from(fromable, (e) => typeof e)).size === 1;
 }
-// export function deeperClone(original: )
+
+type FilterObjectOptions = {
+  /** Whether to recursive filter inner objects */
+  recursive?: boolean;
+  /** Whether to keep deletion keys from the source object in the output */
+  deletionKeys?: boolean;
+  /** Whether to set source keys to the associated value from the template or leave existing */
+  templateValues?: boolean;
+};
+
+type FilteredObject<
+  Source extends AnyObject,
+  Template extends AnyObject,
+  Options extends FilterObjectOptions,
+> = {
+  readonly [K in keyof Template]: CouldBeTrue<Options["recursive"]> extends true | undefined ? FilteredObject<Source[K], Template, Options> : 
+};
+/**
+ * Filter a source object's keys by those of a template
+ *
+ * @param source         - Source object
+ * @param template       - Template object
+ * @param recursive      - Whether to recursive filter inner objects
+ * @param deletionKeys   - Whether to keep deletion keys from the source object in the output
+ * @param templateValues - Whether to set source keys to the associated value from the template or leave existing
+ * @returns - The filtered object
+ */
+export function filterObject(
+  source: AnyObject,
+  template: AnyObject,
+  {
+    /**
+     * Whether to recursive filter inner objects
+     * @defaultValue `true`
+     */
+    recursive = true,
+    deletionKeys = false,
+    templateValues = false,
+  }: FilterObjectOptions = {},
+): AnyObject {
+  if (!R.isPlainObject(source) || !R.isPlainObject(template))
+    throw new Error(
+      "filterObject | Both source and template must be plain objects.",
+    );
+
+  const options: FilterObjectOptions = {
+    recursive,
+    deletionKeys,
+    templateValues,
+  };
+  return _filterObject(source, template, {}, options);
+}
+
+function _filterObject(
+  source: AnyObject,
+  template: AnyObject,
+  filtered: AnyMutableObject,
+  options: FilterObjectOptions,
+): AnyObject {
+  for (const [key, value] of Object.entries(source)) {
+    const existsInTemplate = Object.prototype.hasOwnProperty.call(
+      template,
+      key,
+    );
+    const templateValue = template[key];
+    if (existsInTemplate) {
+      if (R.isPlainObject(value) && R.isPlainObject(templateValue)) {
+        filtered[key] = options.recursive
+          ? _filterObject(value, templateValue, filtered, options)
+          : value;
+      } else {
+        filtered[key] = options.templateValues ? templateValue : value;
+      }
+    } else if (options.deletionKeys && key.startsWith("-=")) {
+      //should be keepDeletionKeys but we're matching the foundry API
+      filtered[key] = value;
+    }
+  }
+  return filtered;
+}
+/**
+ * Function that returns its first parameter.
+ * For simplifying applying-optional-maps logic.
+ * @param self - Any value
+ * @returns That value
+ *
+ * @example
+ * Split can be null, in which case we want to do nothing to the elements,
+ * but breaking up the chained functions would be unsightly
+ *
+ * ```js
+ * split = split === null ? _i : (i) => i.split(split);
+ * inputs = inputs
+ *   .flat(Infinity)
+ *   .filter((i) => !isEmpty(i))
+ *   .flatMap(split)
+ * ```
+ */
+export function _i<T>(self: T): T {
+  return self;
+}

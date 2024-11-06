@@ -7,7 +7,10 @@
     "dev": "vite",
     "format": "prettier -w .",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "types:rm": "yarn remove fvtt-types",
+    "types:add": "yarn add --dev fvtt-types@github:League-of-Foundry-Developers/foundry-vtt-types",
+    "types": "yarn types:rm && yarn types:add"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
@@ -22,7 +25,7 @@
     "eslint-import-resolver-typescript": "^3.6.3",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-tsdoc": "^0.3.0",
-    "fvtt-types": "github:League-of-Foundry-Developers/foundry-vtt-types#v12/main",
+    "fvtt-types": "github:League-of-Foundry-Developers/foundry-vtt-types",
     "prettier": "^3.3.3",
     "remeda": "^2.16.0",
     "sass": "^1.80.3",

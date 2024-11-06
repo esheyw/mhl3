@@ -43,7 +43,7 @@ export type MHLSettingsManagerDefaultsSchema =
   typeof mhlSettingsManagerDefaultsSchema;
 export class MHLSettingsManagerDefaults extends foundry.abstract
   .DataModel<MHLSettingsManagerDefaultsSchema> {
-  static LOCALIZATION_PREFIXES = [`MHL.Models.${this.name}`];
+  static override LOCALIZATION_PREFIXES = [`MHL.Models.${this.name}`];
   static override defineSchema(): MHLSettingsManagerDefaultsSchema {
     return mhlSettingsManagerDefaultsSchema;
   }
