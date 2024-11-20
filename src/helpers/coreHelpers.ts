@@ -4,8 +4,23 @@ import type {
   AnyMutableObject,
   AnyObject,
 } from "fvtt-types/src/types/utils.d.mts";
-import type { CouldBeTrue, Fromable, WithDefaults } from "../mhl.d.ts";
+import type {
+  And,
+  CouldBeFalse,
+  CouldBeTrue,
+  Extends,
+  Fromable,
+  If,
+  KeyIn,
+  Or,
+  PartialIf,
+  PickWithValue,
+  UnionToIntersection,
+  WithDefault,
+  WithDefaults,
+} from "../mhl.d.ts";
 import * as R from "remeda";
+import type { GetKey } from "fvtt-types/src/types/helperTypes.d.mts";
 
 const { expandObject } = foundry.utils;
 
@@ -26,6 +41,9 @@ export type DeeperCloneOptions = {
   cloneMapValues?: boolean;
 };
 
+/**
+ * DeeperClone and associated types courtesy of LukeAbby on the league discord
+ */
 type CloneableTypesFor<Options extends DeeperCloneOptions> =
   CouldBeTrue<Options["strict"]> extends true
     ? _CloneableTypesFor<Options>
@@ -38,9 +56,9 @@ type _CloneableTypesFor<Options extends DeeperCloneOptions> =
   | _CloneableTypesFor<Options>[]
   | (number | string | boolean | AnyFunction | null | undefined);
 
-type DeeperClone<
+export type DeeperClone<
   Original extends CloneableTypesFor<Options>,
-  Options extends DeeperCloneOptions,
+  Options extends DeeperCloneOptions = DeeperCloneDefaults,
 > =
   CouldBeTrue<Options["strict"]> extends true
     ? Original
@@ -89,6 +107,16 @@ type _DeeperClone<
               : undefined
   : undefined; // in strict mode this branch will never be triggered
 
+type DeeperCloneDefaults = {
+  strict: false;
+  returnOriginal: true;
+  cloneSets: false;
+  cloneSetValues: false;
+  cloneMaps: false;
+  cloneMapKeys: false;
+  cloneMapValues: false;
+};
+
 export function deeperClone<
   Original extends CloneableTypesFor<Options>,
   Options extends DeeperCloneOptions,
@@ -97,7 +125,7 @@ export function deeperClone<
   {
     strict = false,
     returnOriginal = true,
-    cloneSets = true,
+    cloneSets = false,
     cloneSetValues = false,
     cloneMaps = false,
     cloneMapKeys = false,
@@ -206,19 +234,19 @@ export function mhlClone<
 /**
  * Expands any string keys containing `.` in the provided object, mutating it.
  * @param object - The object to be expanded
+ * @throws If not provided a plain object
  */
-export function expandInPlace(object: AnyMutableObject): AnyMutableObject {
+export function expandInPlace(object: AnyMutableObject): void {
   //todo: logging error
-  //todo: Work out ExpandedMutable type
   if (!R.isPlainObject(object))
     throw new Error("expandInPlace operates only on plain objects");
-  if (!Object.keys(object).some((k) => k.includes("."))) return object;
+  if (!Object.keys(object).some((k) => k.includes("."))) return;
   const expanded = expandObject(object);
   // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
   Object.keys(object).forEach((k) => delete object[k]);
   Object.assign(object, expanded);
-  return object;
 }
+
 /**
  * Tests whether a given object is a non-string iterable
  * @param object          - The object being tested
@@ -262,22 +290,92 @@ export function isSingleType(fromable: Fromable<unknown>): boolean {
   return new Set(Array.from(fromable, (e) => typeof e)).size === 1;
 }
 
-type FilterObjectOptions = {
+interface FilterObjectOptions {
   /** Whether to recursive filter inner objects */
-  recursive?: boolean;
-  /** Whether to keep deletion keys from the source object in the output */
   deletionKeys?: boolean;
-  /** Whether to set source keys to the associated value from the template or leave existing */
+  /** Whether to keep deletion keys from the source object in the output */
   templateValues?: boolean;
-};
+  /** Whether to set source keys to the associated value from the template or leave existing */
+  recursive?: boolean; // Defaults to `true`.
+}
 
-type FilteredObject<
-  Source extends AnyObject,
+interface FilterObjectDefaults extends FilterObjectOptions {
+  deletionKeys: false;
+  recursive: true;
+  templateValues: false;
+}
+
+/**
+ * FilterObject and associated types courtesy of LukeAbby on the league discord
+ */
+type _FilterObjectInner<
+  Target extends AnyObject,
   Template extends AnyObject,
   Options extends FilterObjectOptions,
-> = {
-  readonly [K in keyof Template]: CouldBeTrue<Options["recursive"]> extends true | undefined ? FilteredObject<Source[K], Template, Options> : 
-};
+  K extends keyof Target,
+  IsValidKey extends boolean,
+> = false extends IsValidKey
+  ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    {}
+  : PartialIf<
+      PickWithValue<
+        Target,
+        K,
+        _FilterObjectRecursion<
+          If<
+            WithDefault<Options["templateValues"], false>,
+            GetKey<Template, K, Target[K]>,
+            Target[K]
+          >,
+          Target[K],
+          GetKey<Template, K, Target[K]>,
+          Options
+        >
+      >,
+      CouldBeFalse<IsValidKey>
+    >;
+
+type _FilterObjectRecursion<
+  Inner,
+  InnerTarget,
+  InnerTemplate,
+  Options extends FilterObjectOptions,
+> = If<
+  And<
+    WithDefault<Options["recursive"], true>,
+    And<Extends<InnerTarget, AnyObject>, Extends<InnerTemplate, AnyObject>>
+  >,
+  FilterObject<
+    Extract<Inner, AnyObject>,
+    Extract<InnerTemplate, AnyObject>,
+    Options
+  >,
+  Inner
+>;
+
+export type FilterObject<
+  Target extends AnyObject,
+  Template extends AnyObject,
+  Options extends FilterObjectOptions = FilterObjectDefaults,
+> = UnionToIntersection<
+  {
+    [K in keyof Target]: _FilterObjectInner<
+      Target,
+      Template,
+      Options,
+      K,
+      Or<
+        KeyIn<K, Template>,
+        If<
+          WithDefault<Options["deletionKeys"], true>,
+          Extends<K, `-=${string}`>,
+          false
+        >
+      >
+    >;
+  }[keyof Target]
+>;
+
 /**
  * Filter a source object's keys by those of a template
  *
@@ -288,19 +386,19 @@ type FilteredObject<
  * @param templateValues - Whether to set source keys to the associated value from the template or leave existing
  * @returns - The filtered object
  */
-export function filterObject(
-  source: AnyObject,
-  template: AnyObject,
+export function filterObject<
+  Target extends AnyObject,
+  Template extends AnyObject,
+  Options extends FilterObjectOptions = FilterObjectDefaults,
+>(
+  source: Target,
+  template: Template,
   {
-    /**
-     * Whether to recursive filter inner objects
-     * @defaultValue `true`
-     */
     recursive = true,
     deletionKeys = false,
     templateValues = false,
   }: FilterObjectOptions = {},
-): AnyObject {
+): FilterObject<Target, Template, Options> {
   if (!R.isPlainObject(source) || !R.isPlainObject(template))
     throw new Error(
       "filterObject | Both source and template must be plain objects.",
@@ -311,7 +409,11 @@ export function filterObject(
     deletionKeys,
     templateValues,
   };
-  return _filterObject(source, template, {}, options);
+  return _filterObject(source, template, {}, options) as FilterObject<
+    Target,
+    Template,
+    Options
+  >;
 }
 
 function _filterObject(
@@ -341,6 +443,7 @@ function _filterObject(
   }
   return filtered;
 }
+
 /**
  * Function that returns its first parameter.
  * For simplifying applying-optional-maps logic.

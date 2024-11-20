@@ -29,7 +29,6 @@ export default ts.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    ignores: [".yarn"],
     plugins: {
       tsdoc,
     },

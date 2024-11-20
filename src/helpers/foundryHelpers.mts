@@ -6,7 +6,7 @@ export function generateFieldI18nKeys(
   {
     prefixes,
     prefixPath,
-  }?: InexactPartial<{
+  }: InexactPartial<{
     /**
      * An array of localization key prefixes to use. If not specified, prefixes
      * are learned from the DataModel.LOCALIZATION_PREFIXES static property.
@@ -22,14 +22,15 @@ export function generateFieldI18nKeys(
   if (!game.i18n) throw new Error("Cannot localize data model before i18nInit");
   prefixes ||= model.LOCALIZATION_PREFIXES;
   const rules = _getRules(prefixes);
-  model.schema.apply(function (this: DataField.Any) {
+  model.schema.apply(function () {
     // Inner models may have prefixes which take precedence
     if (this instanceof foundry.data.fields.EmbeddedDataField) {
-      if (this.model.LOCALIZATION_PREFIXES.length) {
+      const model = this.model as DataModel.AnyConstructor;
+      if (model.LOCALIZATION_PREFIXES.length) {
         foundry.utils.setProperty(
           rules,
           this.fieldPath,
-          _getRules(this.model.LOCALIZATION_PREFIXES),
+          _getRules(model.LOCALIZATION_PREFIXES),
         );
       }
     }
@@ -37,10 +38,13 @@ export function generateFieldI18nKeys(
     // Localize model fields
     let k = this.fieldPath;
     if (prefixPath) k = k.replace(prefixPath, "");
-    const field = foundry.utils.getProperty(rules, k);
-    if (field?.label) this.label = field.label;
-    if (field?.hint) this.hint = field.hint;
-  });
+    const field = foundry.utils.getProperty(rules, k) as {
+      label?: string;
+      hint?: string;
+    };
+    if (field.label) this.label = field.label;
+    if (field.hint) this.hint = field.hint;
+  }, false);
 }
 
 function _getRules(prefixes: string[]): Record<string, string> {

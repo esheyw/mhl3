@@ -36,8 +36,6 @@ if (packageType == "REPLACE ME" || packageID == "REPLACE ME") {
 
 const foundryHost = await findFoundryHost();
 
-await symlinkFoundryPackage(packageType, packageID);
-
 const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
   const buildMode = mode === "production" ? "production" : "development";
   const outDir = "dist";
@@ -70,6 +68,12 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
   console.log(proxyKey);
 
   return {
+    test: {
+      typecheck: {
+        enabled: true,
+        tsconfig: "./tests/tsconfig.json",
+      },
+    },
     base: command === "build" ? "/" : `/${foundryPackagePath}`,
     publicDir: "static",
     build: {
@@ -89,7 +93,7 @@ const config = Vite.defineConfig(({ command, mode }): Vite.UserConfig => {
     },
     server: {
       port: 30037,
-      open: "/game",
+      open: mode === "test" ? false : "/game",
       proxy: {
         [proxyKey]: `http://${foundryHost}`,
         "/socket.io": {
@@ -128,70 +132,6 @@ function minifyPlugin(): Vite.Plugin {
 function getFoundryPackagePath(packageType: PackageType, packageID: string) {
   // Foundry puts a package at the path `/modules/module-name`, `/systems/system-name`, or `/worlds/world-name`.
   return `${packageType}s/${packageID}/`;
-}
-
-// TO BE IMPLEMENTED.
-async function symlinkFoundryPackage(
-  packageType: PackageType,
-  packageID: string,
-): Promise<void> {
-  return;
-
-  const packagePath = getFoundryPackagePath(packageType, packageID);
-
-  const dataPath = await getFoundryDataPath();
-
-  try {
-    await fs.access(dataPath, fs.constants.F_OK);
-  } catch (_e) {
-    const hasDataPathSet = process.env.FOUNDRY_DATA_PATH != null;
-    const hasFoundryHostSet =
-      process.env.FOUNDRY_HOST_NAME != null || process.env.FOUNDRY_PORT != null;
-
-    let envVarHelp;
-    if (hasDataPathSet) {
-      envVarHelp = `FOUNDRY_DATA_PATH is set but the path does not exist.`;
-    } else {
-      envVarHelp = `Set FOUNDRY_DATA_PATH to the path of your FoundryVTT Data directory.`;
-    }
-
-    throw new Error(
-      `Could not find Foundry data path at ${dataPath}.\n${envVarHelp}`,
-    );
-  }
-}
-
-async function getFoundryDataPath(): Promise<string> {
-  if (process.env.FOUNDRY_DATA_PATH != null) {
-    return process.env.FOUNDRY_DATA_PATH;
-  }
-
-  return await getDefaultFoundryDataPath();
-}
-
-async function getDefaultFoundryDataPath(): Promise<string> {
-  const home = os.homedir();
-  const platform = os.platform();
-
-  if (platform === "win32") {
-    let localAppData = process.env.LOCALAPPDATA;
-    localAppData ??= path.join(home, "AppData/Local");
-
-    return path.join(localAppData, "FoundryVTT/Data");
-  } else if (platform === "darwin") {
-    return path.join(home, "Library/Application Support/FoundryVTT/Data");
-  }
-
-  let localShare = process.env.XDG_DATA_HOME;
-  localShare ??= path.join(home, ".local/share");
-
-  try {
-    await fs.access(localShare, fs.constants.F_OK);
-
-    return path.join(localShare, "FoundryVTT/Data");
-  } catch (_e) {
-    return "/local/FoundryVTT/Data";
-  }
 }
 
 async function findFoundryHost(): Promise<string> {
@@ -241,7 +181,7 @@ Windows Error - ${formatError(wslToWindowsPingResult.error)}`,
   }
 
   throw new Error(
-    `Could not ping localhost:30000
+    `Could not ping localhost:${foundryPort}
 ${foundryNotRuning}
 Error: ${pingResult.error.message}`,
   );
@@ -267,7 +207,7 @@ async function ping(hostName: string, port: number): Promise<PingResult> {
   const host = `${hostName}:${port}`;
 
   try {
-    const response = await fetch(`http://${host}`, { method: "OPTION" });
+    const response = await fetch(`http://${host}`, { method: "OPTIONS" });
     await response.body?.cancel("Body not needed");
   } catch (error) {
     return { error: toError(error) };
