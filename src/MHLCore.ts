@@ -18,7 +18,7 @@ export class MHLCore {
     return this.#settingsManagers;
   }
 
-  get R() {
+  get remeda() {
     return R;
   }
   test: number = 9;
