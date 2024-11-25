@@ -7,5 +7,5 @@
     "emitDeclarationOnly": true,
     "typeRoots": ["../node_modules/fvtt-types"]
   },
-  "include": ["tests/**/*.test.ts", "tests/**/*.test-d.ts"]
+  "include": ["**/*.test.ts", "**/*.test-d.ts"]
 }

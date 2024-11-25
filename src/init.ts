@@ -8,7 +8,11 @@ type TestThingOptions = {
   alice: boolean;
 };
 function testThing(
-  options: InexactPartial<TestThingOptions> = { bob: 5, jim: "hi", alice: true },
+  options: InexactPartial<TestThingOptions> = {
+    bob: 5,
+    jim: "hi",
+    alice: true,
+  },
 ): void {
   console.warn(options);
 }
@@ -17,5 +21,5 @@ Hooks.on("init", () => {
   const mhlCore = new MHLCore();
   MODULE.api = mhlCore;
   globalThis.mhl = mhlCore;
-  testThing({jim: "bye"});
+  testThing({ jim: "bye" });
 });

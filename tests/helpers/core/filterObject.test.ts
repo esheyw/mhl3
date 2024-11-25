@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { filterObject } from "../../../src/helpers/coreHelpers.ts";
+import { filterObject } from "@core";
 
 const oneLayerTarget = {
   foo: 1,

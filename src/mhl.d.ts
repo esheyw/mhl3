@@ -1,17 +1,15 @@
+import MHLSettingsManager from "./util/MHLSettingsManager.ts";
 import type { AnyObject, SimpleMerge } from "fvtt-types/src/types/utils.d.mts";
-import type { MHLCONFIG } from "./config.ts";
-import type { MODULE_ID } from "./constants.ts";
-import type { MHLSettingsManagerDefaults } from "./data/models/settings.ts";
-import { MHLCore } from "./MHLCore.ts";
-import type {
-  MHLSettingDefinitionExtensions,
-  MHLSettingMenuDefinitionExtensions,
-} from "./util/MHLSettingsManager.ts";
 import type { GetKey } from "fvtt-types/src/types/helperTypes.d.mts";
-
+import type { MHLCONFIG } from "./config.ts";
+import type { MHLSettingsManagerDefaults } from "./data/models/settings.ts";
+import type { MODULE_ID } from "./constants.ts";
+import type { fields } from "fvtt-types/src/foundry/common/data/module.d.mts";
+import { MHLCore } from "./MHLCore.ts";
 /**
- * General types
+ * Conditional-related types
  */
+
 type And<B1 extends boolean, B2 extends boolean> = B1 extends true ? B2 : false;
 
 type Or<B1 extends boolean, B2 extends boolean> = B1 extends true ? true : B2;
@@ -24,23 +22,31 @@ type KeyIn<K extends PropertyKey, T> = T extends unknown
     : never
   : never;
 
-type MakeBool<T, Default extends boolean = true> = T extends true
-  ? true
-  : T extends false
-    ? false
-    : Default;
-
 type CouldBeTrue<T> = T extends true ? true : never;
 type CouldBeFalse<T> = T extends false ? false : never;
 type Extends<T, V> = T extends V ? true : false;
 
+type PartialIf<
+  T extends AnyObject,
+  IsPartial extends boolean,
+> = IsPartial extends true ? Partial<T> : T;
+
+/**
+ * General types
+ */
+
 type SimpleTestFunction<T = unknown> = (value: T) => boolean;
-type SortCallback = (a: unknown, b: unknown) => number;
+type SortCallback<TCompared = never> = (a: TCompared, b: TCompared) => number;
 type StringReplaceCallback = (match: string) => string;
 
-type ConsoleType = "error" | "warn" | "log" | "info" | "debug" | "trace";
-
 type Fromable<T> = Iterable<T> | ArrayLike<T>;
+type MapLike<K, V> = Map<K, V> | Fromable<[K, V]>;
+
+type StringArgs = string | StringArgs[];
+
+type WithPrefix<T extends AnyObject, Prefix extends string> = {
+  [K in keyof T as K extends string ? `${Prefix}${K}` : K]: T[K];
+};
 
 /**
  * ADVANCED MAGIC
@@ -62,11 +68,6 @@ type UnionToIntersection<U> = (
   ? I
   : never;
 
-type PartialIf<
-  T extends AnyObject,
-  IsPartial extends boolean,
-> = IsPartial extends true ? Partial<T> : T;
-
 type PickWithValue<T, K extends keyof T, V> = {
   [K2 in keyof T as K2 extends K ? K : never]: V;
 };
@@ -74,21 +75,24 @@ type PickWithValue<T, K extends keyof T, V> = {
 type Coalesce<T, D> = [T] extends [never] ? D : T;
 
 type WithDefault<T, D> = T extends undefined ? D : Exclude<T, undefined>;
+
 /**
  * Foundry-related types
  */
 
-type BannerType = "error" | "warn" | "info";
+type NotificationType = Notifications.Notification["type"];
 
 /**
  * Declaration merging for fvtt-types
  */
 type MHLSettings = {
   "manager-defaults": typeof MHLSettingsManagerDefaults;
-};
-
-type WithPrefix<T extends AnyObject, Prefix extends string> = {
-  [K in keyof T as K extends string ? `${Prefix}${K}` : K]: T[K];
+  "debug-mode": fields.BooleanField;
+  "log-level": fields.StringField<{
+    required: true;
+    blank: false;
+    choices: { debug: string; info: string; warn: string; error: string };
+  }>;
 };
 
 declare global {
@@ -98,9 +102,8 @@ declare global {
   interface AssumeHookRan {
     init: true;
   }
-
   interface ModuleConfig {
-    [MODULE_ID]: { api?: MHLCore };
+    [MODULE_ID]: { api: MHLCore };
   }
   interface RequiredModules {
     [MODULE_ID]: true;
@@ -111,9 +114,11 @@ declare global {
 
   namespace ClientSettings {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type
-    interface RegisterOptions<T> extends MHLSettingDefinitionExtensions {}
+    interface RegisterOptions<T>
+      extends MHLSettingsManager.DefinitionExtensions {}
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    interface SettingSubmenuConfig extends MHLSettingMenuDefinitionExtensions {}
+    interface SettingSubmenuConfig
+      extends MHLSettingsManager.MenuDefinitionExtensions {}
   }
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface SettingConfig extends WithPrefix<MHLSettings, `${MODULE_ID}.`> {}

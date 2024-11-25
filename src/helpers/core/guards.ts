@@ -1,5 +1,9 @@
 import type { Fromable } from "../../mhl.js";
 
+export function isJQuery(element: JQuery | HTMLElement): element is JQuery {
+  return element instanceof jQuery;
+}
+
 /**
  * Tests whether a given object is a non-string iterable
  * @param object          - The object being tested

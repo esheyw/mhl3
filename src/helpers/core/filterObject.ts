@@ -116,7 +116,7 @@ export type FilterObject<
 export function filterObject<
   Target extends AnyObject,
   Template extends AnyObject,
-  Options extends FilterObjectOptions = FilterObjectDefaults,
+  Options extends FilterObjectOptions,
 >(
   source: Target,
   template: Template,

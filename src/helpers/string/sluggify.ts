@@ -1,3 +1,9 @@
+/**
+ * Code in this file originally taken from the PF2e System project at https://github.com/foundryvtt/pf2e/ under the Apache 2.0 License
+ * Modified slightly to account for its use outside the system context
+ * A copy of the license can be found at `licenses/LICENSE.pf2e.txt`
+ */
+
 const wordCharacter = String.raw`[\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Join_Control}]`;
 const nonWordCharacter = String.raw`[^\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Join_Control}]`;
 const nonWordBoundary = String.raw`(?=^|$|${wordCharacter})`;
@@ -17,13 +23,14 @@ const upperOrWordBoundariedLowerRE = new RegExp(
 );
 
 /**
- * PF2e's sluggify function, stolen completely.
- * @param  text - The text to sluggify
- * @param  camel -  The sluggification style to use
+ * The system's sluggification algorithm for labels and other terms.
+ * @param text    - The text to sluggify
+ * @param options - Sluggification options
  */
+
 export function sluggify(
   text: string,
-  { camel = null }: { camel?: SlugCamel } = {},
+  { camel = null }: SluggifyOptions = {},
 ): string {
   // Sanity check
   if (typeof text !== "string") {
@@ -56,9 +63,13 @@ export function sluggify(
         )
         .replace(/\s+/g, "");
     default:
-      //todo: reconsider error handling
       throw Error("I don't think that's a real camel.");
   }
 }
 
-export type SlugCamel = "dromedary" | "bactrian" | null;
+type SluggifyOptions = {
+  /** The sluggification method */
+  camel?: SlugCamel;
+};
+
+type SlugCamel = "dromedary" | "bactrian" | null;
