@@ -36,10 +36,9 @@ export class FunctionField<
     return value;
   }
 
-  override getInitialValue(_data?: unknown): AnyFunction | undefined | null {
+  override getInitialValue(data: DataField.CleanOptions["source"]): InitializedType {
     return this.initial;
   }
-}
 
 namespace FunctionField {
   export type Options = DataFieldOptions<AnyFunction>;
