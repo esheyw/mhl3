@@ -1,11 +1,11 @@
 import type DataModel from "fvtt-types/src/foundry/common/abstract/data.d.mts";
-import type { DataField } from "fvtt-types/src/foundry/common/data/fields.d.mts";
 import type {
   InexactPartial,
   NullishProps,
 } from "fvtt-types/src/types/utils.d.mts";
 import * as R from "remeda";
 import { MODULE_ID } from "../../constants.ts";
+import type { DataField } from "fvtt-types/src/foundry/common/data/fields.d.mts";
 
 type ValidLocalizationTransforms =
   | "normalize"
@@ -99,8 +99,6 @@ export function localize(
       ? {}
       : Object.entries(context).reduce((processed, [k, v]) => {
           let value: string;
-          if (typeof k !== "string")
-            throw new Error("Malformed localization context");
           if (typeof v === "string") {
             value = recursive ? localize(v) : v;
           } else if (R.isPlainObject(v) && typeof v.key === "string") {
@@ -114,7 +112,7 @@ export function localize(
           } else {
             throw new Error("Malformed localization context");
           }
-          Object.assign(processed, { k: value });
+          Object.assign(processed, { [k]: value });
           // processed[k] = value;
           return processed;
         }, {});
@@ -135,23 +133,36 @@ export function localize(
   );
 }
 
-export function generateFieldI18nKeys(
+export type GenerateFieldI18nKeysForModelOptions = {
+  /**
+   * Whether to assign the localization keys or the localized values
+   */
+  bakeIn: boolean;
+
+  /**
+   * The string to insert between the field's prefix and the choice keys
+   */
+  choices: string;
+  /**
+   * An array of localization key prefixes to use. If not specified, prefixes
+   * are learned from the DataModel.LOCALIZATION_PREFIXES static property.
+   */
+  prefixes: string[];
+
+  /**
+   * A localization path prefix used to prefix all field names within this model. This is generally not required.
+   */
+  prefixPath: string;
+};
+
+export function generateFieldI18nKeysForModel(
   model: DataModel.AnyConstructor,
   {
+    bakeIn = false,
+    choices = "CHOICES",
     prefixes,
     prefixPath,
-  }: InexactPartial<{
-    /**
-     * An array of localization key prefixes to use. If not specified, prefixes
-     * are learned from the DataModel.LOCALIZATION_PREFIXES static property.
-     */
-    prefixes: string[];
-
-    /**
-     * A localization path prefix used to prefix all field names within this model. This is generally not required.
-     */
-    prefixPath: string;
-  }> = {},
+  }: NullishProps<GenerateFieldI18nKeysForModelOptions> = {},
 ): void {
   if (!game.i18n) throw new Error("Cannot localize data model before i18nInit");
   prefixes ||= model.LOCALIZATION_PREFIXES;
@@ -172,12 +183,31 @@ export function generateFieldI18nKeys(
     // Localize model fields
     let k = this.fieldPath;
     if (prefixPath) k = k.replace(prefixPath, "");
-    const field = foundry.utils.getProperty(rules, k) as {
-      label?: string;
-      hint?: string;
-    };
-    if (field.label) this.label = field.label;
-    if (field.hint) this.hint = field.hint;
+    const fieldKeys = foundry.utils.getProperty(
+      rules,
+      k,
+    ) as Localization.Translations;
+
+    if (R.isString(fieldKeys.label))
+      this.label = bakeIn ? localize(fieldKeys.label) : fieldKeys.label;
+    if (R.isString(fieldKeys.hint))
+      this.hint = bakeIn ? localize(fieldKeys.hint) : fieldKeys.hint;
+
+    const fieldChoices =
+      choices && choices in fieldKeys ? fieldKeys[choices] : null;
+    if (
+      fieldChoices &&
+      !R.isString(fieldChoices) &&
+      "choices" in this &&
+      R.isPlainObject(this.choices)
+    ) {
+      for (const key in this.choices) {
+        if (key in fieldChoices && R.isString(fieldChoices[key]))
+          this.choices[key] = bakeIn
+            ? localize(fieldChoices[key])
+            : fieldChoices[key];
+      }
+    }
   }, false);
 }
 

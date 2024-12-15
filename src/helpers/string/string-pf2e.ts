@@ -4,6 +4,23 @@
  * A copy of the license can be found at `licenses/LICENSE.pf2e.txt`
  */
 
+import { MHLCore } from "../../MHLCore.ts";
+
+/**
+ * Return an integer string of a number, always with sign (+/-)
+ * @param value - The number to convert to a string
+ * @param emptyStringZero - If the value is zero, return an empty string
+ * @param zeroIsNegative - Treat zero as a negative value
+ */
+function signedInteger(
+  value: number,
+  { emptyStringZero = false, zeroIsNegative = false } = {},
+): string {
+  if (value === 0 && emptyStringZero) return "";
+  const maybeNegativeZero = zeroIsNegative && value === 0 ? -0 : value;
+  return MHLCore.instance.signedIntFormatter.format(maybeNegativeZero);
+}
+
 const wordCharacter = String.raw`[\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Join_Control}]`;
 const nonWordCharacter = String.raw`[^\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Join_Control}]`;
 const nonWordBoundary = String.raw`(?=^|$|${wordCharacter})`;
@@ -27,8 +44,7 @@ const upperOrWordBoundariedLowerRE = new RegExp(
  * @param text    - The text to sluggify
  * @param options - Sluggification options
  */
-
-export function sluggify(
+function sluggify(
   text: string,
   { camel = null }: SluggifyOptions = {},
 ): string {
@@ -73,3 +89,5 @@ type SluggifyOptions = {
 };
 
 type SlugCamel = "dromedary" | "bactrian" | null;
+
+export { sluggify, signedInteger };

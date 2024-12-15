@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./constants.ts";
 import { MHLSettingsManagerDefaults } from "./data/models/settings.ts";
 import type { MHLSettings } from "./mhl.d.ts";
+import { MHLCore } from "./MHLCore.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SETTINGS: Record<string, ClientSettings.RegisterOptions<any>> = {
@@ -13,13 +14,20 @@ export const SETTINGS: Record<string, ClientSettings.RegisterOptions<any>> = {
   },
 };
 
-export function setting(key: keyof MHLSettings, { suppress = false } = {}) {
-  const manager = game.modules.get(MODULE_ID).api.getSettingsManager(MODULE_ID);
-  if (manager.initialized) return manager.get(key);
+export function setting<TKey extends keyof MHLSettings>(
+  key: TKey,
+  { suppress = false } = {},
+): MHLSettings[TKey] | undefined {
+  const manager = MHLCore.instance.getSettingsManager(MODULE_ID);
+  if (manager?.initialized)
+    return manager.get(key) as MHLSettings[TKey] | undefined;
   else {
     let value;
     try {
-      value = game.settings.get(MODULE_ID, key as ClientSettings.Key);
+      value = game.settings.get(
+        MODULE_ID,
+        key as ClientSettings.Key,
+      ) as MHLSettings[TKey];
     } catch (error) {
       if (!suppress) console.error(error);
       return undefined;

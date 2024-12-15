@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../../constants.ts";
+import { accordionSpeedField } from "../fields/factories.ts";
 
 const fields = foundry.data.fields;
 
@@ -10,15 +11,8 @@ const mhlSettingsManagerDefaultsSchema = {
     choices: () => CONFIG[MODULE_ID].disabledClasses,
     group: ".CSS",
   }),
-  accordionSpeed: new fields.NumberField({
-    required: true,
-    nullable: false,
-    min: 25,
-    step: 25,
-    max: 2000,
-    initial: 300,
-  }),
-  accordionIndicatorIcon: new fields.StringField({
+  accordionSpeed: accordionSpeedField(),
+  accordionIndicator: new fields.StringField({
     required: true,
     nullable: false,
     initial: "fa-chevron-down",
@@ -28,17 +22,18 @@ const mhlSettingsManagerDefaultsSchema = {
     nullable: false,
     initial: "mdi-reply-all",
   }),
-  groupResetIcon: new fields.StringField({
+  groupsResetIcon: new fields.StringField({
     required: true,
     nullable: false,
     initial: "mdi-reply",
   }),
-  settingResetIcon: new fields.StringField({
+  settingsResetIcon: new fields.StringField({
     required: true,
     nullable: false,
     initial: "mdi-restore",
   }),
 };
+
 export type MHLSettingsManagerDefaultsSchema =
   typeof mhlSettingsManagerDefaultsSchema;
 export class MHLSettingsManagerDefaults extends foundry.abstract

@@ -1,6 +1,7 @@
 export type MHLCONFIG = {
-  disabledClasses: string[]
-}
+  disabledClasses: string[];
+};
+
 export const MHLCONFIG: MHLCONFIG = {
-  disabledClasses: []
-}
+  disabledClasses: [],
+};

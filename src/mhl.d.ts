@@ -40,7 +40,11 @@ type SortCallback<TCompared = never> = (a: TCompared, b: TCompared) => number;
 type StringReplaceCallback = (match: string) => string;
 
 type Fromable<T> = Iterable<T> | ArrayLike<T>;
-type MapLike<K, V> = Map<K, V> | Fromable<[K, V]>;
+type MapOrFromableEntries<K, V> = Map<K, V> | Fromable<[K, V]>;
+
+// stolen from pf2e
+type SetElement<TSet extends Set<unknown>> =
+  TSet extends Set<infer TElement> ? TElement : never;
 
 type StringArgs = string | StringArgs[];
 
@@ -80,8 +84,29 @@ type WithDefault<T, D> = T extends undefined ? D : Exclude<T, undefined>;
  * Foundry-related types
  */
 
-type NotificationType = Notifications.Notification["type"];
+type SelectOptionsEntry<
+  valueAttr extends string | number = "value",
+  labelAttr extends string | number = "label",
+> = {
+  [K in valueAttr]: string | number;
+} & { [K in labelAttr]: string | number } & {
+  group?: string;
+  selected?: boolean;
+  disabled?: boolean;
+  rule?: boolean;
+};
 
+type SelectOptionsThatWorkWithoutOptions =
+  | string[]
+  | number[]
+  | Record<string | number, string | number>
+  | Array<SelectOptionsEntry>;
+
+type NotificationType = Notifications.Notification["type"];
+type AudioFilePath = `${string}.${keyof typeof CONST.AUDIO_FILE_EXTENSIONS}`;
+type ImageFilePath = `${string}.${keyof typeof CONST.IMAGE_FILE_EXTENSIONS}`;
+type VideoFilePath = `${string}.${keyof typeof CONST.VIDEO_FILE_EXTENSIONS}`;
+type MediaFilePath = AudioFilePath | ImageFilePath | VideoFilePath;
 /**
  * Declaration merging for fvtt-types
  */

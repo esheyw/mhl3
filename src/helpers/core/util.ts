@@ -2,7 +2,11 @@ import type {
   AnyMutableObject,
   AnyObject,
 } from "fvtt-types/src/types/utils.d.mts";
-import type { Fromable, MapLike, SortCallback } from "../../mhl.d.ts";
+import type {
+  Fromable,
+  MapOrFromableEntries,
+  SortCallback,
+} from "../../mhl.d.ts";
 import { isFromable } from "./guards.ts";
 import * as R from "remeda";
 
@@ -28,17 +32,26 @@ export function _i<T>(self: T): T {
   return self;
 }
 
+//TODO: better names for these functions
 export function arrayify<T = never>(fromable: Fromable<T>): Array<T> {
   if (Array.isArray(fromable)) return fromable as Array<T>;
   return Array.from(fromable);
 }
 
 export function mapify<K = unknown, V = unknown>(
-  input: MapLike<K, V>,
+  input: MapOrFromableEntries<K, V> | Fromable<[K, V]>,
 ): Map<K, V> {
   if (input instanceof Map) return input;
   if (!isFromable(input)) throw new Error("Invalid entry data");
   return new Map(Array.from(input));
+}
+
+export function entrify<K = unknown, V = unknown>(
+  input: MapOrFromableEntries<K, V>,
+): Array<[K, V]> {
+  if (input instanceof Map) return [...input.entries()];
+  if (!isFromable(input)) throw new Error("Invalid entry data");
+  return Array.from(input);
 }
 
 /**

@@ -7,52 +7,32 @@ import type {
 /* eslint-disable @typescript-eslint/no-namespace */
 export class FunctionField<
   Options extends FunctionField.Options = FunctionField.DefaultOptions,
-  AssignmentType = FunctionField.AssignmentType<
+  FunctionType = FunctionField.AssignmentType<
     SimpleMerge<Options, FunctionField.DefaultOptions>
   >,
-  InitializedType = FunctionField.InitializedType<
-    SimpleMerge<Options, FunctionField.DefaultOptions>
-  >,
-  PersistedType extends
-    | AnyFunction
-    | null
-    | undefined = FunctionField.InitializedType<
-    SimpleMerge<Options, FunctionField.DefaultOptions>
-  >,
-> extends foundry.data.fields.DataField<
-  Options,
-  AssignmentType,
-  InitializedType,
-  PersistedType
-> {
+> extends foundry.data.fields.DataField<Options, FunctionType> {
   protected override _validateType(
-    value: InitializedType,
+    value: unknown,
     _options?: DataField.ValidationOptions<DataField.Any>,
   ): boolean {
     return typeof value === "function";
   }
 
-  protected override _cast(value: AssignmentType): InitializedType {
+  protected override _cast(value: FunctionType): FunctionType {
     return value;
   }
 
-  override getInitialValue(
-    data: DataField.CleanOptions["source"],
-  ): InitializedType {
-    return this.initial;
+  override getInitialValue(): FunctionType {
+    return this.initial as FunctionType;
   }
 }
+
 namespace FunctionField {
   export type Options = DataFieldOptions<AnyFunction>;
 
   export type DefaultOptions = Options;
 
-  export type MergedOptions<Opts extends Options> = SimpleMerge<
-    DefaultOptions,
-    Opts
-  >;
+  type MergedOptions<Opts extends Options> = SimpleMerge<DefaultOptions, Opts>;
   export type AssignmentType<Opts extends Options> =
     DataField.DerivedAssignmentType<AnyFunction, MergedOptions<Opts>>;
-  export type InitializedType<Opts extends Options> =
-    DataField.DerivedInitializedType<AnyFunction, MergedOptions<Opts>>;
 }
