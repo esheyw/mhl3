@@ -1,11 +1,9 @@
 import type DataModel from "fvtt-types/src/foundry/common/abstract/data.d.mts";
-import type {
-  InexactPartial,
-  NullishProps,
-} from "fvtt-types/src/types/utils.d.mts";
+import type { NullishProps } from "fvtt-types/src/types/utils.d.mts";
 import * as R from "remeda";
 import { MODULE_ID } from "../../constants.ts";
 import type { DataField } from "fvtt-types/src/foundry/common/data/fields.d.mts";
+import { isDataField } from "../core/guards.ts";
 
 type ValidLocalizationTransforms =
   | "normalize"
@@ -169,9 +167,8 @@ export function generateFieldI18nKeysForModel(
   const rules = _getRules(prefixes);
   model.schema.apply(function (this: DataField.Any) {
     // Inner models may have prefixes which take precedence
-    if (this instanceof foundry.data.fields.EmbeddedDataField) {
-      const model = this.model as DataModel.AnyConstructor;
-      if (model.LOCALIZATION_PREFIXES.length) {
+    if (isDataField(this, foundry.data.fields.EmbeddedDataField)) {
+      if (this.model.LOCALIZATION_PREFIXES.length) {
         foundry.utils.setProperty(
           rules,
           this.fieldPath,
@@ -208,12 +205,12 @@ export function generateFieldI18nKeysForModel(
             : fieldChoices[key];
       }
     }
-  }, false);
+  });
 }
 
 function _getRules(prefixes: string[]): Record<string, string> {
   if (!game.i18n) throw new Error("Cannot localize data model before i18nInit");
-  const rules = {};
+  const rules: Record<string, string> = {};
   for (const prefix of prefixes) {
     if (game.i18n.lang !== "en") {
       const fallback = foundry.utils.getProperty(
